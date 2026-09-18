@@ -1,8 +1,10 @@
 package com.example.shitolpata.ui.components
 
 import android.graphics.Bitmap
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -20,6 +22,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
@@ -52,39 +55,40 @@ fun PagePreviewComponent(
         modifier = modifier
             .fillMaxWidth()
             .testTag("page_preview_card"),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier.padding(14.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Header controls inside preview
+            // Header chips: Split Comparison & Auto Otsu
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Split View Toggle Chip
                 FilterChip(
                     selected = splitMode,
                     onClick = onToggleSplitMode,
                     label = {
                         Text(
-                            text = if (isEnglish) "Split Comparison" else "তুলনামূলক ভিউ",
-                            fontSize = 12.sp
+                            text = if (isEnglish) "Compare" else "তুলনা",
+                            fontSize = 12.sp,
+                            fontWeight = if (splitMode) FontWeight.Bold else FontWeight.Normal
                         )
                     },
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Default.Compare,
-                            contentDescription = "Split Comparison",
+                            contentDescription = "Compare",
                             modifier = Modifier.size(16.dp)
                         )
                     },
+                    shape = RoundedCornerShape(16.dp),
                     colors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = LeafPrimary.copy(alpha = 0.2f),
                         selectedLabelColor = LeafPrimary
@@ -92,42 +96,42 @@ fun PagePreviewComponent(
                     modifier = Modifier.testTag("split_view_toggle")
                 )
 
-                // Auto Otsu shortcut button
-                FilledTonalButton(
+                SuggestionChip(
                     onClick = onAutoOtsu,
-                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                    shape = RoundedCornerShape(8.dp),
-                    colors = ButtonDefaults.filledTonalButtonColors(
-                        containerColor = SunlightSecondary.copy(alpha = 0.15f),
-                        contentColor = SunlightSecondary
-                    ),
-                    modifier = Modifier
-                        .height(32.dp)
-                        .testTag("auto_otsu_button")
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.AutoFixHigh,
-                        contentDescription = "Auto Cutoff",
-                        modifier = Modifier.size(14.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = if (isEnglish) "Auto Otsu" else "স্বয়ংক্রিয় ওতসু",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+                    label = {
+                        Text(
+                            text = if (isEnglish) "Auto Otsu" else "স্বয়ংক্রিয় ওতসু",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    },
+                    icon = {
+                        Icon(
+                            imageVector = Icons.Default.AutoFixHigh,
+                            contentDescription = "Auto Cutoff",
+                            tint = SunlightSecondary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    },
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.testTag("auto_otsu_button")
+                )
             }
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Main Preview Canvas Area
+            // Main Preview Canvas Area with phone-optimized aspect ratio
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(min = 360.dp, max = 500.dp)
-                    .clip(RoundedCornerShape(12.dp))
+                    .heightIn(min = 300.dp, max = 460.dp)
+                    .clip(RoundedCornerShape(14.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .border(
+                        1.dp,
+                        MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
+                        RoundedCornerShape(14.dp)
+                    )
                     .testTag("preview_canvas_box"),
                 contentAlignment = Alignment.Center
             ) {
@@ -154,7 +158,7 @@ fun PagePreviewComponent(
                 } else {
                     // Empty placeholder
                     Column(
-                        horizontalAlignment = Alignment.CenterVertically,
+                        horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center,
                         modifier = Modifier.padding(32.dp)
                     ) {
@@ -173,12 +177,12 @@ fun PagePreviewComponent(
                     }
                 }
 
-                // Loading Overlay
+                // Loading Indicator Overlay
                 if (isLoading) {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(Color.Black.copy(alpha = 0.4f)),
+                            .background(Color.Black.copy(alpha = 0.35f)),
                         contentAlignment = Alignment.Center
                     ) {
                         CircularProgressIndicator(
@@ -190,42 +194,55 @@ fun PagePreviewComponent(
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
-            // Page Navigation Controls
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
+            // Phone-Optimized Floating Page Navigation Pill
+            Surface(
+                shape = RoundedCornerShape(24.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)),
+                modifier = Modifier.padding(vertical = 4.dp)
             ) {
-                IconButton(
-                    onClick = onPreviousPage,
-                    enabled = currentPage > 1 && !isLoading,
-                    modifier = Modifier.testTag("prev_page_button")
+                Row(
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Previous Page"
-                    )
-                }
+                    IconButton(
+                        onClick = onPreviousPage,
+                        enabled = currentPage > 1 && !isLoading,
+                        modifier = Modifier
+                            .size(36.dp)
+                            .testTag("prev_page_button")
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Previous Page",
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
 
-                Text(
-                    text = if (isEnglish) "Page $currentPage of $totalPages" else "পৃষ্ঠা $currentPage / $totalPages",
-                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                    modifier = Modifier
-                        .padding(horizontal = 16.dp)
-                        .testTag("page_indicator_text")
-                )
-
-                IconButton(
-                    onClick = onNextPage,
-                    enabled = currentPage < totalPages && !isLoading,
-                    modifier = Modifier.testTag("next_page_button")
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                        contentDescription = "Next Page"
+                    Text(
+                        text = if (isEnglish) "Page $currentPage of $totalPages" else "পৃষ্ঠা $currentPage / $totalPages",
+                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+                        modifier = Modifier
+                            .padding(horizontal = 12.dp)
+                            .testTag("page_indicator_text")
                     )
+
+                    IconButton(
+                        onClick = onNextPage,
+                        enabled = currentPage < totalPages && !isLoading,
+                        modifier = Modifier
+                            .size(36.dp)
+                            .testTag("next_page_button")
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                            contentDescription = "Next Page",
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
                 }
             }
         }
@@ -288,51 +305,49 @@ fun SplitComparisonCanvas(
                 strokeWidth = 3.dp.toPx()
             )
 
-            // 4. Draw handle knob in the middle of divider
+            // 4. Draw handle indicator circle
             drawCircle(
                 color = Color.White,
-                radius = 14.dp.toPx(),
-                center = Offset(splitX, size.height / 2f)
+                radius = 12.dp.toPx(),
+                center = Offset(splitX, size.height / 2)
             )
             drawCircle(
                 color = LeafPrimary,
-                radius = 10.dp.toPx(),
-                center = Offset(splitX, size.height / 2f)
+                radius = 9.dp.toPx(),
+                center = Offset(splitX, size.height / 2)
             )
         }
 
-        // Labels: "Original" on left, "Recolored" on right
+        // Before / After labels
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(8.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(Color.Black.copy(alpha = 0.6f))
-                    .padding(horizontal = 6.dp, vertical = 2.dp)
+            Surface(
+                shape = RoundedCornerShape(6.dp),
+                color = Color.Black.copy(alpha = 0.6f)
             ) {
                 Text(
-                    text = if (isEnglish) "Original" else "আসল",
+                    text = if (isEnglish) "Original" else "মূল কপি",
                     color = Color.White,
                     fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                 )
             }
 
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(LeafPrimary.copy(alpha = 0.85f))
-                    .padding(horizontal = 6.dp, vertical = 2.dp)
+            Surface(
+                shape = RoundedCornerShape(6.dp),
+                color = LeafPrimary.copy(alpha = 0.85f)
             ) {
                 Text(
                     text = if (isEnglish) "Recolored" else "শীতল পাতা",
                     color = Color.White,
                     fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                 )
             }
         }

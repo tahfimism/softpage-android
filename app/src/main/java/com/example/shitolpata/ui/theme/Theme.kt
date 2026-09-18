@@ -7,40 +7,43 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
 private val DarkColorScheme = darkColorScheme(
     primary = LeafPrimary,
-    onPrimary = NightBg0,
+    onPrimary = Color.White,
     primaryContainer = LeafPrimaryDark,
-    onPrimaryContainer = NightTextPrimary,
+    onPrimaryContainer = DarkTextPrimary,
     secondary = SunlightSecondary,
-    onSecondary = NightBg0,
-    background = NightBg0,
-    onBackground = NightTextPrimary,
-    surface = NightBg1,
-    onSurface = NightTextPrimary,
-    surfaceVariant = NightBg2,
-    onSurfaceVariant = NightTextSecondary,
-    outline = NightBorder
+    onSecondary = Color.Black,
+    background = DarkPageBg,
+    onBackground = DarkTextPrimary,
+    surface = DarkCardBg,
+    onSurface = DarkTextPrimary,
+    surfaceVariant = DarkTertiaryBg,
+    onSurfaceVariant = DarkTextSecondary,
+    outline = DarkBorderDefault,
+    outlineVariant = DarkBorderLight
 )
 
 private val LightColorScheme = lightColorScheme(
     primary = LeafPrimary,
-    onPrimary = PaperBg0,
+    onPrimary = Color.White,
     primaryContainer = LeafPrimaryLight,
     onPrimaryContainer = PaperTextPrimary,
     secondary = SunlightSecondary,
-    onSecondary = PaperBg0,
+    onSecondary = Color.Black,
     background = PaperBg0,
     onBackground = PaperTextPrimary,
     surface = PaperBg1,
     onSurface = PaperTextPrimary,
     surfaceVariant = PaperBg2,
     onSurfaceVariant = PaperTextSecondary,
-    outline = PaperBorder
+    outline = PaperBorder,
+    outlineVariant = PaperBorder
 )
 
 @Composable

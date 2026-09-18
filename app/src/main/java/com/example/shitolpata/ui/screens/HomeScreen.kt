@@ -3,25 +3,39 @@ package com.example.shitolpata.ui.screens
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -31,6 +45,7 @@ import com.example.shitolpata.model.Settings
 import com.example.shitolpata.processing.DemoPdfType
 import com.example.shitolpata.ui.components.*
 import com.example.shitolpata.ui.theme.LeafPrimary
+import com.example.shitolpata.ui.theme.PaperLeaf
 import com.example.shitolpata.ui.theme.SunlightSecondary
 import com.example.shitolpata.viewmodel.AppViewModel
 
@@ -51,13 +66,13 @@ fun HomeScreen(
     val isPreviewLoading by viewModel.isPreviewLoading.collectAsState()
     val splitMode by viewModel.splitViewMode.collectAsState()
     val splitSliderPos by viewModel.splitSliderPos.collectAsState()
-    val currentTab by viewModel.currentTab.collectAsState()
     val language by viewModel.language.collectAsState()
+    val currentTab by viewModel.currentTab.collectAsState()
     val isEnglish = language == "en"
 
     var showCustomColorDialog by remember { mutableStateOf(false) }
 
-    // SAF File Open Launcher (application/pdf)
+    // SAF File Open Launcher
     val pdfPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri: Uri? ->
@@ -78,18 +93,18 @@ fun HomeScreen(
         uri?.let { viewModel.exportCurrentPageImage(context, it) }
     }
 
+    val activeDoc = files.getOrNull(activeIndex)
+
     if (files.isEmpty()) {
-        // Landing Page View
-        LandingView(
+        // Clean Homepage: Centered Logo & Name in middle, NO feature lists, NO palettes/adjust icons, NO bottom bar
+        CleanHomepageView(
             isEnglish = isEnglish,
             onPickPdf = { pdfPickerLauncher.launch(arrayOf("application/pdf")) },
             onSelectDemo = { type -> viewModel.loadDemoPdf(type) },
             modifier = modifier
         )
     } else {
-        // Active Workspace View
-        val activeDoc = files.getOrNull(activeIndex)
-
+        // Document Workspace (When document is opened)
         Column(
             modifier = modifier
                 .fillMaxSize()
@@ -100,12 +115,12 @@ fun HomeScreen(
                     .weight(1f)
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
-                contentPadding = PaddingValues(vertical = 12.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                contentPadding = PaddingValues(top = 8.dp, bottom = 12.dp)
             ) {
-                // Queue Bar (if document loaded)
+                // Document queue pill (if multiple docs or to add more)
                 item {
-                    DocumentQueueBar(
+                    DocumentQueuePhoneBar(
                         files = files,
                         activeIndex = activeIndex,
                         isEnglish = isEnglish,
@@ -115,7 +130,7 @@ fun HomeScreen(
                     )
                 }
 
-                // Split Preview Component
+                // Document Preview Card
                 item {
                     PagePreviewComponent(
                         originalBitmap = originalBitmap,
@@ -134,7 +149,7 @@ fun HomeScreen(
                     )
                 }
 
-                // Workspace Tabs: Design vs Adjustments
+                // Workspace Mode Switcher: Color Palettes vs Fine Adjustments
                 item {
                     TabRow(
                         selectedTabIndex = if (currentTab == "design") 0 else 1,
@@ -149,7 +164,7 @@ fun HomeScreen(
                             onClick = { viewModel.setTab("design") },
                             text = {
                                 Text(
-                                    text = if (isEnglish) "Color Schemes" else "রঙের স্কিম",
+                                    text = if (isEnglish) "Palettes" else "রঙের স্কিম",
                                     fontWeight = if (currentTab == "design") FontWeight.Bold else FontWeight.Normal
                                 )
                             },
@@ -169,7 +184,7 @@ fun HomeScreen(
                     }
                 }
 
-                // Tab Content
+                // Active Workspace Tab Content
                 if (currentTab == "design") {
                     item {
                         PaletteSelector(
@@ -201,12 +216,14 @@ fun HomeScreen(
                 }
             }
 
-            // Fixed Bottom Export Action Bar
+            // Fixed Bottom Action Bar for Exporting
             Surface(
-                tonalElevation = 6.dp,
+                tonalElevation = 8.dp,
                 shadowElevation = 8.dp,
                 color = MaterialTheme.colorScheme.surface,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
             ) {
                 Row(
                     modifier = Modifier
@@ -220,15 +237,18 @@ fun HomeScreen(
                             val defaultImgName = "${activeDoc?.name?.substringBeforeLast(".") ?: "page"}_recolored_p$previewPage.png"
                             imageExportLauncher.launch(defaultImgName)
                         },
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier
                             .weight(1f)
+                            .height(46.dp)
                             .testTag("btn_save_page_image")
                     ) {
-                        Icon(imageVector = Icons.Default.Image, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Icon(Icons.Default.Image, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = if (isEnglish) "Save Page" else "ছবি সংরক্ষণ",
-                            fontSize = 12.sp
+                            text = if (isEnglish) "Save PNG" else "ছবি সেভ",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold
                         )
                     }
 
@@ -238,14 +258,16 @@ fun HomeScreen(
                             pdfExportLauncher.launch(defaultPdfName)
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = LeafPrimary),
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier
-                            .weight(1.6f)
+                            .weight(1.5f)
+                            .height(46.dp)
                             .testTag("btn_export_recolored_pdf")
                     ) {
-                        Icon(imageVector = Icons.Default.Download, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = if (isEnglish) "Export Recolored PDF" else "পিডিএফ এক্সপোর্ট করুন",
+                            text = if (isEnglish) "Export PDF" else "পিডিএফ এক্সপোর্ট",
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -271,152 +293,141 @@ fun HomeScreen(
     }
 }
 
+/**
+ * Clean Homepage:
+ * - Centered Logo & Name in middle
+ * - Primary Action Button to Choose PDF
+ * - Instant Demo Files
+ * - NO extra feature lists
+ * - NO palettes or adjust icon on home page
+ * - NO bottom bar
+ */
 @Composable
-fun LandingView(
+fun CleanHomepageView(
     isEnglish: Boolean,
     onPickPdf: () -> Unit,
     onSelectDemo: (DemoPdfType) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    LazyColumn(
+    Box(
         modifier = modifier
             .fillMaxSize()
-            .padding(16.dp)
+            .padding(horizontal = 24.dp)
+            .navigationBarsPadding()
             .testTag("landing_view"),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        contentPadding = PaddingValues(vertical = 16.dp)
+        contentAlignment = Alignment.Center
     ) {
-        item {
-            // Hero Badge & Title
-            Box(
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            // Authentic Shitol Pata Brand Emblem
+            ShitolPataLogo(
                 modifier = Modifier
-                    .size(64.dp)
-                    .clip(CircleShape)
-                    .background(LeafPrimary.copy(alpha = 0.15f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Eco,
-                    contentDescription = "Shitol Pata",
-                    tint = LeafPrimary,
-                    modifier = Modifier.size(36.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            Text(
-                text = if (isEnglish) "Shitol Pata" else "শীতল পাতা",
-                style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold)
+                    .size(80.dp)
+                    .testTag("brand_logo")
             )
 
+            Spacer(modifier = Modifier.height(18.dp))
+
+            // Centered Title
             Text(
-                text = if (isEnglish) "ডিজিটাল ডকুমেন্টের জন্য এক টুকরো শীতল পাতা" else "Digital document er jonno ek tukro shitol pata",
-                style = MaterialTheme.typography.bodyMedium.copy(color = LeafPrimary),
-                fontWeight = FontWeight.Medium
+                text = if (isEnglish) "Shitol Pata" else "শীতল পাতা",
+                style = MaterialTheme.typography.headlineMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = (-0.5).sp
+                )
             )
 
             Spacer(modifier = Modifier.height(6.dp))
 
+            // Tagline
             Text(
                 text = if (isEnglish)
-                    "Turn harsh, blinding PDFs into soft, eye-friendly documents for comfortable late-night reading."
+                    "A soothing sheet for your digital documents"
                 else
-                    "চোখের ওপর তীব্র চাপ দূর করে আপনার পড়ার সময়কে করুন স্নিগ্ধ ও আরামদায়ক।",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 16.dp),
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    "ডিজিটাল ডকুমেন্টের জন্য এক টুকরো শীতল পাতা",
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    color = LeafPrimary,
+                    fontWeight = FontWeight.SemiBold
+                ),
+                textAlign = TextAlign.Center
             )
-        }
 
-        // Primary Call to Action: Open PDF
-        item {
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Subtitle
+            Text(
+                text = if (isEnglish)
+                    "Turn harsh, blinding PDFs into soft, eye-friendly documents."
+                else
+                    "তীব্র উজ্জ্বল পিডিএফগুলোকে রূপান্তর করুন কোমল ও আরামদায়ক রঙে।",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                lineHeight = 20.sp,
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // Primary Choose PDF Document Button
             Button(
                 onClick = onPickPdf,
                 colors = ButtonDefaults.buttonColors(containerColor = LeafPrimary),
-                shape = RoundedCornerShape(14.dp),
+                shape = RoundedCornerShape(16.dp),
+                elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(54.dp)
+                    .height(56.dp)
                     .testTag("btn_choose_pdf")
             ) {
-                Icon(imageVector = Icons.Default.FolderOpen, contentDescription = null, modifier = Modifier.size(20.dp))
-                Spacer(modifier = Modifier.width(8.dp))
+                Icon(
+                    imageVector = Icons.Default.FolderOpen,
+                    contentDescription = null,
+                    modifier = Modifier.size(22.dp)
+                )
+                Spacer(modifier = Modifier.width(10.dp))
                 Text(
                     text = if (isEnglish) "Choose PDF Document" else "পিডিএফ ফাইল সিলেক্ট করুন",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold
                 )
             }
-        }
 
-        // Instant Demo Buttons
-        item {
-            Card(
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                modifier = Modifier.fillMaxWidth()
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Sample Document Buttons
+            Text(
+                text = if (isEnglish) "Or try a sample document" else "অথবা ডেমো ফাইল দিয়ে পরখ করুন",
+                style = MaterialTheme.typography.labelMedium.copy(
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Text(
-                        text = if (isEnglish) "Or Try a Sample Document" else "অথবা ডেমো ফাইল দিয়ে পরীক্ষা করুন",
-                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
-                    )
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        OutlinedButton(
-                            onClick = { onSelectDemo(DemoPdfType.MATH_WORKSHEET) },
-                            modifier = Modifier.weight(1f).testTag("btn_demo_math"),
-                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp)
-                        ) {
-                            Text(if (isEnglish) "Math Sheet" else "গণিত", fontSize = 11.sp)
-                        }
-
-                        OutlinedButton(
-                            onClick = { onSelectDemo(DemoPdfType.BOOK_CHAPTER) },
-                            modifier = Modifier.weight(1f).testTag("btn_demo_book"),
-                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp)
-                        ) {
-                            Text(if (isEnglish) "Book Chapter" else "বইয়ের অধ্যায়", fontSize = 11.sp)
-                        }
-
-                        OutlinedButton(
-                            onClick = { onSelectDemo(DemoPdfType.LEGAL_NDA) },
-                            modifier = Modifier.weight(1f).testTag("btn_demo_nda"),
-                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp)
-                        ) {
-                            Text(if (isEnglish) "Legal NDA" else "চুক্তিপত্র", fontSize = 11.sp)
-                        }
-                    }
-                }
-            }
-        }
-
-        // Feature Highlights
-        item {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                FeatureRow(
-                    icon = Icons.Default.Lock,
-                    title = if (isEnglish) "100% Local & Private" else "শতভাগ ব্যক্তিগত ও অন-ডিভাইস",
-                    subtitle = if (isEnglish) "No uploads to external servers. Runs completely offline." else "কোনো ডেটা সার্ভারে যায় না। সম্পূর্ণ অফলাইনে কার্যকর।"
+                DemoPillChip(
+                    title = if (isEnglish) "Math Sheet" else "গণিত",
+                    onClick = { onSelectDemo(DemoPdfType.MATH_WORKSHEET) },
+                    modifier = Modifier.weight(1f).testTag("btn_demo_math")
                 )
-                FeatureRow(
-                    icon = Icons.Default.Palette,
-                    title = if (isEnglish) "Curated Palettes & Presets" else "আই-ফ্রেন্ডলি রঙের প্যালেট",
-                    subtitle = if (isEnglish) "Warm Sepia, Night Blue, Soft Gray, AMOLED, and custom hex codes." else "ওয়ার্ম সেপিয়া, নাইট ব্লু, অ্যামোলেড এবং নিজস্ব কাস্টম রঙ।"
+
+                DemoPillChip(
+                    title = if (isEnglish) "Book Chapter" else "বইয়ের অধ্যায়",
+                    onClick = { onSelectDemo(DemoPdfType.BOOK_CHAPTER) },
+                    modifier = Modifier.weight(1f).testTag("btn_demo_book")
                 )
-                FeatureRow(
-                    icon = Icons.Default.AutoFixHigh,
-                    title = if (isEnglish) "Statistical Otsu Binarization" else "স্মার্ট ওতসু থ্রেশহোল্ডিং",
-                    subtitle = if (isEnglish) "Crisp anti-aliased font rendering with image preservation." else "ফন্ট স্পষ্ট রেখে ছবি ও ডায়াগ্রাম অক্ষুণ্ণ রাখে।"
+
+                DemoPillChip(
+                    title = if (isEnglish) "Legal NDA" else "চুক্তিপত্র",
+                    onClick = { onSelectDemo(DemoPdfType.LEGAL_NDA) },
+                    modifier = Modifier.weight(1f).testTag("btn_demo_nda")
                 )
             }
         }
@@ -424,36 +435,37 @@ fun LandingView(
 }
 
 @Composable
-fun FeatureRow(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, subtitle: String) {
-    Card(
+fun DemoPillChip(
+    title: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        onClick = onClick,
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
-        modifier = Modifier.fillMaxWidth()
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)),
+        modifier = modifier.height(44.dp)
     ) {
-        Row(
-            modifier = Modifier.padding(12.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier.padding(horizontal = 6.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(LeafPrimary.copy(alpha = 0.15f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(imageVector = icon, contentDescription = null, tint = LeafPrimary, modifier = Modifier.size(20.dp))
-            }
-            Column {
-                Text(text = title, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold))
-                Text(text = subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelMedium.copy(
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 12.sp
+                ),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
     }
 }
 
 @Composable
-fun DocumentQueueBar(
+fun DocumentQueuePhoneBar(
     files: List<PdfDocumentItem>,
     activeIndex: Int,
     isEnglish: Boolean,
@@ -466,24 +478,29 @@ fun DocumentQueueBar(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(
+            modifier = Modifier.padding(10.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = if (isEnglish) "Active Documents (${files.size})" else "ডকুমেন্ট তালিকা (${files.size})",
+                    text = if (isEnglish) "Document (${files.size})" else "ডকুমেন্ট (${files.size})",
                     style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
                 )
 
-                TextButton(
+                FilledTonalButton(
                     onClick = onAddMore,
-                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.height(28.dp)
                 ) {
-                    Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(14.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text(if (isEnglish) "Add File" else "নতুন যোগ", fontSize = 12.sp)
+                    Text(if (isEnglish) "Add" else "যোগ", fontSize = 11.sp)
                 }
             }
 
@@ -493,16 +510,15 @@ fun DocumentQueueBar(
             ) {
                 itemsIndexed(files) { index, doc ->
                     val isCurrent = index == activeIndex
-                    Card(
+                    Surface(
+                        onClick = { onSelectFile(index) },
                         shape = RoundedCornerShape(10.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = if (isCurrent) LeafPrimary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant
-                        ),
-                        border = if (isCurrent) androidx.compose.foundation.BorderStroke(1.5.dp, LeafPrimary) else null,
-                        modifier = Modifier.clickable { onSelectFile(index) }
+                        color = if (isCurrent) LeafPrimary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant,
+                        border = if (isCurrent) BorderStroke(1.5.dp, LeafPrimary) else null,
+                        modifier = Modifier.height(42.dp)
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
@@ -515,13 +531,13 @@ fun DocumentQueueBar(
                             Column {
                                 Text(
                                     text = doc.name,
-                                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
                                 Text(
                                     text = "${doc.pageCount} p • ${doc.formattedSize}",
-                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
@@ -531,7 +547,7 @@ fun DocumentQueueBar(
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Close,
-                                    contentDescription = "Close",
+                                    contentDescription = "Remove",
                                     modifier = Modifier.size(12.dp)
                                 )
                             }
@@ -540,5 +556,62 @@ fun DocumentQueueBar(
                 }
             }
         }
+    }
+}
+
+@Composable
+fun ShitolPataLogo(
+    modifier: Modifier = Modifier,
+    backgroundColor: Color = LeafPrimary,
+    leafColor: Color = PaperLeaf
+) {
+    Canvas(modifier = modifier) {
+        val w = size.width
+        val h = size.height
+        val scaleX = w / 100f
+        val scaleY = h / 115f
+
+        // Document background with rounded corners
+        drawRoundRect(
+            color = backgroundColor,
+            topLeft = Offset(10f * scaleX, 8f * scaleY),
+            size = Size(80f * scaleX, 100f * scaleY),
+            cornerRadius = CornerRadius(10f * scaleX, 10f * scaleY)
+        )
+
+        // Folded top-right page corner
+        val foldPath = Path().apply {
+            moveTo(75f * scaleX, 8f * scaleY)
+            lineTo(90f * scaleX, 8f * scaleY)
+            lineTo(90f * scaleX, 23f * scaleY)
+            close()
+        }
+        drawPath(foldPath, color = leafColor)
+
+        // Shitol Pata (Leaf) shape in the center
+        val leafPath = Path().apply {
+            moveTo(50f * scaleX, 24f * scaleY)
+            cubicTo(
+                70f * scaleX, 38f * scaleY,
+                70f * scaleX, 80f * scaleY,
+                50f * scaleX, 96f * scaleY
+            )
+            cubicTo(
+                30f * scaleX, 80f * scaleY,
+                30f * scaleX, 38f * scaleY,
+                50f * scaleX, 24f * scaleY
+            )
+            close()
+        }
+        drawPath(leafPath, color = leafColor)
+
+        // Leaf central vein line
+        drawLine(
+            color = backgroundColor,
+            start = Offset(50f * scaleX, 32f * scaleY),
+            end = Offset(50f * scaleX, 88f * scaleY),
+            strokeWidth = 2.5f * scaleX,
+            cap = StrokeCap.Round
+        )
     }
 }

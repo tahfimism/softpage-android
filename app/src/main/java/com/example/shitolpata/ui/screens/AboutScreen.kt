@@ -37,17 +37,6 @@ fun AboutScreen(
             .testTag("about_screen"),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Top Back Action
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack, modifier = Modifier.testTag("about_back_button")) {
-                Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-            }
-            Text(
-                text = if (isEnglish) "About Shitol Pata" else "শীতল পাতা পরিচিতি",
-                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
-            )
-        }
-
         // Hero Card
         Card(
             shape = RoundedCornerShape(16.dp),

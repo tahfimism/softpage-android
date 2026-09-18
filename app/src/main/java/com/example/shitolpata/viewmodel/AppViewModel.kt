@@ -157,6 +157,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         )
         _palettes.value = _palettes.value + newPalette
         _selectedPalette.value = newPalette
+        triggerRenderRecolored()
         showToast(if (_language.value == "en") "Palette saved!" else "প্যালেট সংরক্ষণ করা হয়েছে!")
     }
 
@@ -173,9 +174,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         triggerRenderRecolored()
     }
 
-    fun setPreviewPage(page: number) {
+    fun setPreviewPage(page: Int) {
         val total = activeFile?.pageCount ?: 1
-        _previewPage.value = page.toInt().coerceIn(1, total)
+        _previewPage.value = page.coerceIn(1, total)
         triggerRenderPage()
     }
 
