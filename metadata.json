@@ -1,0 +1,6 @@
+{
+  "name": "Shitol Pata",
+  "description": "Turns harsh PDFs into soft, eye-friendly reading with custom palettes, Otsu binarization, and local on-device recoloring.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

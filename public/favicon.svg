@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Page Background Shape (Leaf `#5B8C6E`) -->
+  <path d="M20 22.5 A 7.5 7.5 0 0 1 27.5 15 L 71 15 L 80 24 L 80 77.5 A 7.5 7.5 0 0 1 72.5 85 L 27.5 85 A 7.5 7.5 0 0 1 20 77.5 Z" fill="#5B8C6E"/>
+  
+  <!-- Folded Corner (Paper `#F7F1E3`) -->
+  <polygon points="71,15 80,24 71,24" fill="#F7F1E3"/>
+  
+  <!-- Leaf Silhouette (Paper `#F7F1E3`) -->
+  <path d="M50 28 Q35 48 50 72 Q65 48 50 28 Z" fill="#F7F1E3"/>
+  
+  <!-- Leaf Vein (Leaf `#5B8C6E`) -->
+  <line x1="50" y1="28" x2="50" y2="72" stroke="#5B8C6E" stroke-width="2" stroke-linecap="round"/>
+</svg>

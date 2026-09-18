@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="leaf_primary">#5B8C6E</color>
+    <color name="leaf_dark">#3D684E</color>
+    <color name="leaf_container">#1F3A2B</color>
+    <color name="sunlight_secondary">#E8A33D</color>
+    
+    <!-- Dark Mode Neutral Palette -->
+    <color name="bg_night_primary">#121214</color>
+    <color name="bg_night_card">#1C1C20</color>
+    <color name="bg_night_secondary">#26262B</color>
+    <color name="text_night_primary">#E7EDE9</color>
+    <color name="text_night_muted">#A9B6AC</color>
+    
+    <!-- Light Mode Paper Palette -->
+    <color name="bg_paper_primary">#FFF9EB</color>
+    <color name="bg_paper_card">#EDE6D4</color>
+    <color name="bg_paper_secondary">#E5DCBF</color>
+    <color name="text_paper_primary">#202B23</color>
+    <color name="text_paper_muted">#4B564D</color>
+</resources>
